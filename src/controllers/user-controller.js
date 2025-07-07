@@ -6,7 +6,7 @@ const svc = new UserService();
 
 router.post('/registro', async (req, res) => {
   const usuario = await svc.registro(req.body);
-  res.status(201).json(user);
+  res.status(201).json(usuario);
 });
 
 router.post('/login', async (req, res) => {

@@ -6,15 +6,16 @@ export default class UserService {
     this.repo = new UserRepository();
   }
 
-  async login(mail, contraseña) {
-    const usuario = await this.repo.getByEmail(email);
-    if (!usuario) return null;
-    const isValid = await bcrypt.compare(contraseña, user.contraseña);
-    return isValid ? usuario : null;
-  }
-
-  async register(usuario) {
-    const hashed = await bcrypt.hash(usuario.contraseña, 10);
-    return this.repo.createUser({ ...usuario, contraseña: hashed });
-  }
+async login(mail, contraseña) {
+  const usuario = await this.repo.getByEmail(mail);
+  if (!usuario) return null;
+  const isValid = await bcrypt.compare(contraseña, usuario.contraseña);
+  return isValid ? usuario : null;
 }
+
+async registro(usuario) {
+  const hashed = await bcrypt.hash(usuario.contraseña, 10);
+  return this.repo.createUser({ ...usuario, contraseña: hashed });
+}
+}
+
