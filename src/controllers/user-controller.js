@@ -22,4 +22,12 @@ router.post('/login', async (req, res) => {
   } else res.status(401).send('Credenciales incorrectas');
 });
 
+// Endpoint para registrar estudiante
+router.post('/estudiantes', async (req, res) => {
+  // Aquí deberías guardar el estudiante en la base de datos
+  // Por ejemplo: await svc.registrarEstudiante(req.body);
+  // Simulación de respuesta exitosa:
+  res.status(201).json({ message: 'Estudiante registrado', estudiante: req.body });
+});
+
 export default router;
