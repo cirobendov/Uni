@@ -17,5 +17,9 @@ async registro(usuario) {
   const hashed = await bcrypt.hash(usuario.contraseña, 10);
   return this.repo.createUser({ ...usuario, contraseña: hashed });
 }
+
+  async registrarEstudiante(estudiante) {
+    return this.repo.createEstudiante(estudiante);
+  }
 }
 
