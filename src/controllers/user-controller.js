@@ -15,18 +15,15 @@ router.post('/login', async (req, res) => {
   const usuario = await svc.login(mail, contraseña);
   if (usuario) {
     const payload = { id: usuario.id, mail: usuario.mail };
-    const secretKey = 'ClaveSecreta2000$'; // You should store this in an environment variable in production
+    const secretKey = 'ClaveSecreta2000$';
     const options = { expiresIn: '1h', issuer: 'mi_organizacion' };
     const token = jwt.sign(payload, secretKey, options);
     res.status(200).json({ usuario, token });
   } else res.status(401).send('Credenciales incorrectas');
 });
 
-// Endpoint para registrar estudiante
 router.post('/estudiantes', async (req, res) => {
-  // Aquí deberías guardar el estudiante en la base de datos
-  // Por ejemplo: await svc.registrarEstudiante(req.body);
-  // Simulación de respuesta exitosa:
+  await svc.registrarEstudiante(req.body);
   res.status(201).json({ message: 'Estudiante registrado', estudiante: req.body });
 });
 
