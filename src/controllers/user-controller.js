@@ -1,25 +1,37 @@
 import { Router } from 'express';
 import UserService from '../services/user-service.js';
-import jwt from 'jsonwebtoken';
+import { validateEstudiante, validateRegistro, validateLogin } from '../middlewares/validateEstudiante-middleware.js';
+import { StatusCodes } from 'http-status-codes';
 
 const router = Router();
 const svc = new UserService();
 
-router.post('/registro', async (req, res) => {
-  const usuario = await svc.registro(req.body);
-  res.status(201).json(usuario);
+router.post('/register', validateRegistro, validateEstudiante, async (req, res) => {
+  try {
+    const { estudiante, ...usuarioData } = req.body;
+
+    const usuarioCreado = await svc.registro(usuarioData);
+
+    const estudianteCreado = await svc.registrarEstudiante({
+      ...estudiante,
+      mail: usuarioData.mail,
+      idusuario: usuarioCreado.id // lo obtenés recién ahora
+    });
+
+    res.status(StatusCodes.CREATED).json({
+      message: 'Registro completo exitoso',
+      usuario: usuarioCreado,
+      estudiante: estudianteCreado
+    });
+  } catch (error) {
+    res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+  }
+  
 });
 
-router.post('/login', async (req, res) => {
-  const { mail, contraseña } = req.body;
-  const usuario = await svc.login(mail, contraseña);
-  if (usuario) {
-    const payload = { id: usuario.id, mail: usuario.mail };
-    const secretKey = 'ClaveSecreta2000$';
-    const options = { expiresIn: '1h', issuer: 'mi_organizacion' };
-    const token = jwt.sign(payload, secretKey, options);
-    res.status(200).json({ usuario, token });
-  } else res.status(401).send('Credenciales incorrectas');
+router.post('/login', validateLogin, async (req, res) => {
+  const result = await svc.login(req.body); // le pasás { mail, contraseña }
+  return res.status(result.status).json(result.body);
 });
 
 router.post('/estudiantes', async (req, res) => {

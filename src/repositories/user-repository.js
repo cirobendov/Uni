@@ -15,7 +15,7 @@ export default class UserRepository {
     const client = new Client(DBConfig);
     await client.connect();
     const sql = 'INSERT INTO Usuarios (tipo, nombreusuario, mail, contraseña, fecharegistro) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-    const values = [usuario.tipo, usuario.nombreusuario, usuario.mail, usuario.contraseña, usuario.fecharegistro];
+    const values = [usuario.tipo, usuario.nombreusuario, usuario.mail, usuario.contraseña, new Date];
     const res = await client.query(sql, values);
     await client.end();
     return res.rows[0];
@@ -24,8 +24,8 @@ export default class UserRepository {
   async createEstudiante(estudiante) {
     const client = new Client(DBConfig);
     await client.connect();
-    const sql = 'INSERT INTO estudiantes (nombre, apellido, fechanac, mail, idusuario) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-    const values = [estudiante.nombre, estudiante.apellido, estudiante.fechanac, estudiante.mail, estudiante.idusuario];
+    const sql = 'INSERT INTO estudiantes (nombre, apellido, fechanac, foto, idusuario) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+    const values = [estudiante.nombre, estudiante.apellido, estudiante.fechanac, estudiante.foto, estudiante.idusuario];
     const res = await client.query(sql, values);
     await client.end();
     return res.rows[0];
