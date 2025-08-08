@@ -14,14 +14,14 @@ export default class UserService {
     if (!usuario) {
       return {
         status: 401,
-        body: { success: false, error: 'Mail o contraseña incorrectos.' }
+        body: { success: false, message: 'Mail o contraseña incorrectos.' }
       };
     }
     const isValid = await bcrypt.compare(contraseña, usuario.contraseña);
     if (!isValid) {
       return {
         status: 401,
-        body: { success: false, error: 'Mail o contraseña incorrectos.' }
+        body: { success: false, message: 'Mail o contraseña incorrectos.' }
       };
     }
 

@@ -4,15 +4,15 @@ import { validateEstudiante, validateRegistro, validateLogin } from '../middlewa
 import { StatusCodes } from 'http-status-codes';
 
 const router = Router();
-const svc = new UserService();
+const service = new UserService();
 
 router.post('/register', validateRegistro, validateEstudiante, async (req, res) => {
   try {
     const { estudiante, ...usuarioData } = req.body;
 
-    const usuarioCreado = await svc.registro(usuarioData);
+    const usuarioCreado = await service.registro(usuarioData);
 
-    const estudianteCreado = await svc.registrarEstudiante({
+    const estudianteCreado = await service.registrarEstudiante({
       ...estudiante,
       mail: usuarioData.mail,
       idusuario: usuarioCreado.id // lo obtenés recién ahora
@@ -30,12 +30,12 @@ router.post('/register', validateRegistro, validateEstudiante, async (req, res) 
 });
 
 router.post('/login', validateLogin, async (req, res) => {
-  const result = await svc.login(req.body); // le pasás { mail, contraseña }
+  const result = await service.login(req.body); // le pasás { mail, contraseña }
   return res.status(result.status).json(result.body);
 });
 
 router.post('/estudiantes', async (req, res) => {
-  await svc.registrarEstudiante(req.body);
+  await service.registrarEstudiante(req.body);
   res.status(201).json({ message: 'Estudiante registrado', estudiante: req.body });
 });
 
