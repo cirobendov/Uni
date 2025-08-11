@@ -11,6 +11,14 @@ export default class UserRepository {
     return res.rows[0];
   }
 
+  async getByNombreUsuario(nombreusuario) {
+    const client = new Client(DBConfig);
+    await client.connect();
+    const res = await client.query('SELECT * FROM usuarios WHERE nombreusuario = $1', [nombreusuario]);
+    await client.end();
+    return res.rows[0];
+  }
+
   async createUser(usuario) {
     const client = new Client(DBConfig);
     await client.connect();

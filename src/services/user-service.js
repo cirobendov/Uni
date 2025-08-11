@@ -46,12 +46,34 @@ export default class UserService {
 
   async registro(usuario) {
     const existente = await this.repo.getByEmail(usuario.mail);
+    const existenteNombreUsuario = await this.repo.getByNombreUsuario(usuario.nombreusuario);
     if (existente) {
       throw new Error('Ya existe un usuario con ese mail.');
+    } else if (existenteNombreUsuario) {
+      throw new Error('Ya existe un usuario con ese nombre de usuario.');
     }
     const hashed = await bcrypt.hash(usuario.contraseña, 10);
     return this.repo.createUser({ ...usuario, contraseña: hashed });
   }
+  
+  async validateExistence(mail, nombreusuario) {
+    const existente = await this.repo.getByEmail(mail);
+    if (existente) {
+        const err = new Error('El mail ya está registrado.');
+        err.status = 400;
+        throw err;
+    }
+
+    const existenteNombreUsuario = await this.repo.getByNombreUsuario(nombreusuario);
+    if (existenteNombreUsuario) {
+        const err = new Error('El nombre de usuario ya está registrado.');
+        err.status = 400;
+        throw err;
+    }
+
+    return { success: true, message: 'Mail y nombre de usuario disponibles.' };
+  }
+
 
   async registrarEstudiante(estudiante) {
     return this.repo.createEstudiante(estudiante);

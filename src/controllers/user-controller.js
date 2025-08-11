@@ -34,6 +34,19 @@ router.post('/login', validateLogin, async (req, res) => {
   return res.status(result.status).json(result.body);
 });
 
+router.get('/validate-existence', async (req, res) => {
+  try {
+    const { mail, nombreusuario } = req.query;
+    const result = await service.validateExistence(mail, nombreusuario);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res
+      .status(error.status || 500)
+      .json({ success: false, message: error.message || 'Error interno del servidor.' });
+  }
+});
+
+
 router.post('/estudiantes', async (req, res) => {
   await service.registrarEstudiante(req.body);
   res.status(201).json({ message: 'Estudiante registrado', estudiante: req.body });
