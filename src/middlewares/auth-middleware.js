@@ -9,7 +9,7 @@ export const authenticateToken = (req, res, next) => {
     if (!token) {
         return res.status(401).json({ 
             success: false, 
-            message: "Token de acceso requerido" 
+            message: "No tienes permiso para acceder" 
         });
     }
 
@@ -17,7 +17,7 @@ export const authenticateToken = (req, res, next) => {
         if (err) {
             return res.status(401).json({ 
                 success: false, 
-                message: "Token inválido o expirado" 
+                message: "Sesión expirada o inválida" 
             });
         }
         
