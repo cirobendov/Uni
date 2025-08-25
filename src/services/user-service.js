@@ -1,16 +1,19 @@
 import bcrypt from 'bcryptjs';
-import UserRepository from '../repositories/user-repository.js';
 import jwt from 'jsonwebtoken';
+
+import UserRepository from '../repositories/user-repository.js';
+import CommonRepository from '../repositories/common-repository.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 
 export default class UserService {
   constructor() {
     this.repo = new UserRepository();
+    this.commonRepo = new CommonRepository();
   }
 
   async login({ mail, contraseña }) {
-    const usuario = await this.repo.getByEmail(mail);
+    const usuario = await this.commonRepo.getOneByField('usuarios', 'mail', mail);
     if (!usuario) {
       return {
         status: 401,
@@ -45,8 +48,10 @@ export default class UserService {
   }
 
   async registro(usuario) {
-    const existente = await this.repo.getByEmail(usuario.mail);
-    const existenteNombreUsuario = await this.repo.getByNombreUsuario(usuario.nombreusuario);
+    const [existente, existenteNombreUsuario] = await Promise.all([
+      this.commonRepo.getOneByField('usuarios', 'mail', usuario.mail),
+      this.commonRepo.getOneByField('usuarios', 'nombreusuario', usuario.nombreusuario)
+    ]);
     if (existente) {
       throw new Error('Ya existe un usuario con ese mail.');
     } else if (existenteNombreUsuario) {
@@ -57,14 +62,14 @@ export default class UserService {
   }
   
   async validateExistence(mail, nombreusuario) {
-    const existente = await this.repo.getByEmail(mail);
+    const existente = await this.commonRepo.getOneByField('usuarios', 'mail', mail);
     if (existente) {
         const err = new Error('El mail ya está registrado.');
         err.status = 400;
         throw err;
     }
 
-    const existenteNombreUsuario = await this.repo.getByNombreUsuario(nombreusuario);
+    const existenteNombreUsuario = await this.commonRepo.getOneByField('usuarios', 'nombreusuario', nombreusuario);
     if (existenteNombreUsuario) {
         const err = new Error('El nombre de usuario ya está registrado.');
         err.status = 400;
