@@ -9,6 +9,10 @@ export default class UniversityService {
   }
 
   async getAll() {
+    const universidades = await this.universityRepo.getAll();
+    return universidades;
+  }
+  async getAllExpanded() {
     const universidades = await this.universityRepo.getAllExpanded();
     return universidades;
   }

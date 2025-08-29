@@ -15,6 +15,15 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/expanded', authenticateToken, async (req, res) => {
+  try {
+    const universidades = await service.getAllExpanded();
+    return res.status(StatusCodes.OK).json({ success: true, data: universidades });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message });
+  }
+});
+
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
