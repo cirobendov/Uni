@@ -26,6 +26,10 @@ export default class CareerService {
     return carrera;
   }
 
+  async getCarrerasByCategoria(idCategoria) {
+    const carreras = await this.careerRepo.getCarrerasByCategoria(idCategoria);
+    return carreras;
+  }
 
 }
 

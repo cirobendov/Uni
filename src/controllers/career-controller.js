@@ -28,5 +28,18 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/careers-by-category/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const carreras = await service.getCarrerasByCategoria(Number(id));
+    if (carreras === null) {
+      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Universidad no encontrada' });
+    }
+    return res.status(StatusCodes.OK).json({ success: true, data: carreras });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message });
+  }
+});
+
 
 export default router;

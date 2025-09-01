@@ -31,17 +31,7 @@ export default class CareerRepository {
       }
     }
 
-    async getAll() {
-      await this.connect();
-      
-      const sql = `
-        SELECT *
-        FROM universidades 
-        ORDER BY nombre
-      `;
-      
-      return await this.safeQuery(sql);
-    }
+
  
     async getAllExpanded() {
       await this.connect();
@@ -95,35 +85,23 @@ export default class CareerRepository {
       return result[0] || null;
     }
 
-    async getCarrerasByUniversidad(idUniversidad) {
-      await this.connect();
-      
-      const sql = `
-        SELECT c.*, cxu.*
-        FROM carrerasxuniversidades cxu
-        JOIN carreras c ON c.id = cxu.idcarrera
-        WHERE cxu.iduniversidad = $1
-        ORDER BY c.id
-      `;
-      
-      return await this.safeQuery(sql, [idUniversidad]);
-    }
-
-    async getCarrerasWithCategorias(idUniversidad) {
+    async getCarrerasByCategoria(idCategoria) {
       await this.connect();
       
       const sql = `
         SELECT 
-          c.*, 
-          cxu.*,
-          to_jsonb(cat.*) as categoria
-        FROM carrerasxuniversidades cxu
-        JOIN carreras c ON c.id = cxu.idcarrera
-        LEFT JOIN categorias cat ON c.id_categoria = cat.id
-        WHERE cxu.iduniversidad = $1
-        ORDER BY c.id
+          carreras.*,
+          categorias.nombre as categoria_nombre
+        FROM categorias_x_carrera
+        INNER JOIN carreras 
+          ON carreras.id = categorias_x_carrera.id_carrera
+        INNER JOIN categorias 
+          ON categorias.id = categorias_x_carrera.id_categoria
+        WHERE categorias.id = $1
+        ORDER BY carreras.nombre
       `;
       
-      return await this.safeQuery(sql, [idUniversidad]);
+      return await this.safeQuery(sql, [idCategoria]);
     }
+
 }
