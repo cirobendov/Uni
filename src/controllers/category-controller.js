@@ -15,4 +15,14 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/:id/carreras', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const carreras = await service.getCareersByCategory(id);
+    return res.status(StatusCodes.OK).json({ success: true, data: carreras });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message });
+  }
+});
+
 export default router;
