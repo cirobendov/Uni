@@ -116,7 +116,7 @@ export default class TestQuestionsRepository {
         car.descripcion,
         car.foto,
         car.duracion,
-        COUNT(cp.id_categoria) as relevancia
+        CAST(COUNT(cp.id_categoria) AS INTEGER) as relevancia
       FROM carreras car
       JOIN carreras_x_preguntas carp ON car.id = carp.id_carrera
       JOIN categorias_x_preguntas cp ON carp.id_pregunta = cp.id_pregunta
@@ -129,6 +129,31 @@ export default class TestQuestionsRepository {
     return result.rows;
   }
 
+  async getCarrerasConRespuestas(idUsuario) {
+    await this.commonRepo.connect();
+    
+    const query = `
+      SELECT 
+        car.id,
+        car.nombre,
+        car.descripcion,
+        car.foto,
+        car.duracion,
+        CAST(COUNT(CASE WHEN rt.valor = true THEN 1 END) AS INTEGER) as respuestas_positivas,
+        CAST(COUNT(rt.id) AS INTEGER) as total_respuestas
+      FROM carreras car
+      JOIN carreras_x_preguntas carp ON car.id = carp.id_carrera
+      JOIN preguntas p ON carp.id_pregunta = p.id
+      LEFT JOIN respuestas_test rt ON p.id = rt.id_pregunta AND rt.id_usuario = $1
+      GROUP BY car.id, car.nombre, car.descripcion, car.foto, car.duracion
+      HAVING COUNT(rt.id) > 0
+      ORDER BY respuestas_positivas DESC, total_respuestas DESC
+    `;
+    
+    const result = await this.commonRepo.client.query(query, [idUsuario]);
+    return result.rows;
+  }
+
   async getCategoriasConRespuestas(idUsuario) {
     await this.commonRepo.connect();
     
@@ -137,8 +162,8 @@ export default class TestQuestionsRepository {
         c.id,
         c.nombre,
         c.logo,
-        COUNT(CASE WHEN rt.valor = true THEN 1 END) as respuestas_positivas,
-        COUNT(rt.id) as total_respuestas
+        CAST(COUNT(CASE WHEN rt.valor = true THEN 1 END) AS INTEGER) as respuestas_positivas,
+        CAST(COUNT(rt.id) AS INTEGER) as total_respuestas
       FROM categorias c
       JOIN categorias_x_preguntas cp ON c.id = cp.id_categoria
       JOIN preguntas p ON cp.id_pregunta = p.id

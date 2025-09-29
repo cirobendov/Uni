@@ -85,7 +85,10 @@ export default class TestQuestionsService {
       // Obtener categorías con respuestas del usuario
       const categoriasConRespuestas = await this.testQuestionsRepo.getCategoriasConRespuestas(idUsuario);
       
-      if (categoriasConRespuestas.length === 0) {
+      // Obtener carreras con respuestas del usuario
+      const carrerasConRespuestas = await this.testQuestionsRepo.getCarrerasConRespuestas(idUsuario);
+      
+      if (categoriasConRespuestas.length === 0 && carrerasConRespuestas.length === 0) {
         return {
           mensaje: 'No se encontraron respuestas para este usuario',
           carreras_recomendadas: []
@@ -93,19 +96,58 @@ export default class TestQuestionsService {
       }
 
       // Encontrar la(s) categoría(s) con más respuestas positivas
-      const maxRespuestas = Math.max(...categoriasConRespuestas.map(c => c.respuestas_positivas));
-      const categoriasTop = categoriasConRespuestas.filter(c => c.respuestas_positivas === maxRespuestas);
+      let categoriasTop = [];
+      if (categoriasConRespuestas.length > 0) {
+        const maxRespuestas = Math.max(...categoriasConRespuestas.map(c => c.respuestas_positivas));
+        categoriasTop = categoriasConRespuestas.filter(c => c.respuestas_positivas === maxRespuestas);
+      }
+
+      // Encontrar la(s) carrera(s) con más respuestas positivas
+      let carrerasTop = [];
+      if (carrerasConRespuestas.length > 0) {
+        const maxRespuestasCarreras = Math.max(...carrerasConRespuestas.map(c => c.respuestas_positivas));
+        carrerasTop = carrerasConRespuestas.filter(c => c.respuestas_positivas === maxRespuestasCarreras);
+      }
       
-      // Obtener carreras asociadas a las categorías top
-      const categoriaIds = categoriasTop.map(c => c.id);
-      const carrerasRecomendadas = await this.testQuestionsRepo.getCarrerasByCategorias(categoriaIds);
+      // Obtener carreras asociadas a las categorías top (como respaldo)
+      let carrerasPorCategoria = [];
+      if (categoriasTop.length > 0) {
+        const categoriaIds = categoriasTop.map(c => c.id);
+        carrerasPorCategoria = await this.testQuestionsRepo.getCarrerasByCategorias(categoriaIds);
+      }
+
+      // Combinar y priorizar carreras específicas sobre carreras por categoría
+      const carrerasRecomendadas = [...carrerasConRespuestas];
+      
+      // Agregar carreras por categoría que no estén ya en la lista
+      for (const carrera of carrerasPorCategoria) {
+        if (!carrerasRecomendadas.some(c => c.id === carrera.id)) {
+          carrerasRecomendadas.push(carrera);
+        }
+      }
+
+      // Ordenar por relevancia (respuestas positivas primero, luego por nombre)
+      carrerasRecomendadas.sort((a, b) => {
+        const respuestasA = a.respuestas_positivas || 0;
+        const respuestasB = b.respuestas_positivas || 0;
+        if (respuestasA !== respuestasB) {
+          return respuestasB - respuestasA; // Más respuestas primero
+        }
+        return a.nombre.localeCompare(b.nombre); // Alfabético si empatan
+      });
 
       return {
         usuario_id: idUsuario,
         categorias_analizadas: categoriasConRespuestas,
         categorias_top: categoriasTop,
+        carreras_analizadas: carrerasConRespuestas,
+        carreras_top: carrerasTop,
         carreras_recomendadas: carrerasRecomendadas,
-        total_carreras: carrerasRecomendadas.length
+        total_carreras: carrerasRecomendadas.length,
+        explicacion: {
+          logica: "Las carreras se ordenan primero por respuestas específicas, luego por relevancia de categorías",
+          carrera_mas_seleccionada: carrerasTop.length > 0 ? carrerasTop[0].nombre : "N/A"
+        }
       };
 
     } catch (error) {
