@@ -4,6 +4,7 @@ import UserController from './src/controllers/user-controller.js';
 import UniversityController from './src/controllers/university-controller.js'
 import CareerController from './src/controllers/career-controller.js'
 import CategoryController from './src/controllers/category-controller.js'
+import QuestionController from './src/controllers/test_questions-controller.js'
 
 const app = express();
 const port = 3000;
@@ -14,6 +15,7 @@ app.use('/user', UserController);
 app.use('/university', UniversityController)
 app.use('/career', CareerController)
 app.use('/category', CategoryController)
+app.use('/questions', QuestionController)
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
