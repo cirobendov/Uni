@@ -48,4 +48,11 @@ export default class UserRepository {
     const res = await this.client.query(sql, values);
     return res.rows[0];
   }
+
+  async updatePasswordById(id, hashedPassword) {
+    await this.connect();
+    const sql = 'UPDATE usuarios SET contraseña = $1 WHERE id = $2';
+    await this.client.query(sql, [hashedPassword, id]);
+    return { id };
+  }
 }

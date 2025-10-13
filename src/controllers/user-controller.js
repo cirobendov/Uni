@@ -52,4 +52,22 @@ router.post('/estudiantes', async (req, res) => {
   res.status(201).json({ message: 'Estudiante registrado', estudiante: req.body });
 });
 
+router.post('/admin/rehash-passwords', async (req, res) => {
+  try {
+    const result = await service.rehashExistingPlaintextPasswords();
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message || 'Error interno.' });
+  }
+});
+
+router.post('/register/uni', async (req, res) => {
+  try {
+    const created = await service.registerUniversityUser(req.body);
+    return res.status(StatusCodes.CREATED).json({ message: 'Universidad creada', usuario: created });
+  } catch (error) {
+    return res.status(error.status || 400).json({ success: false, message: error.message });
+  }
+});
+
 export default router;
