@@ -60,4 +60,24 @@ export default class ProfileService {
         return profile;
     }
 
+    async updateSection(idPerfilXSeccion, data, idPerfil) {
+        if (!idPerfilXSeccion || Number.isNaN(Number(idPerfilXSeccion))) {
+            const err = new Error('Parámetro id de sección inválido');
+            err.status = 400;
+            throw err;
+        }
+        const updated = await this.profileRepo.updateSection(idPerfilXSeccion, idPerfil, data);
+        return updated;
+    }
+
+    async deleteSection(idPerfilXSeccion, idPerfil) {
+        if (!idPerfilXSeccion || Number.isNaN(Number(idPerfilXSeccion))) {
+            const err = new Error('Parámetro id de sección inválido');
+            err.status = 400;
+            throw err;
+        }
+        const deleted = await this.profileRepo.deleteSection(idPerfilXSeccion, idPerfil);
+        return deleted;
+    }
+
 }

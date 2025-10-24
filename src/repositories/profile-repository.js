@@ -303,4 +303,118 @@ export default class ProfileRepository{
       return dataRows;
     }
 
+    async updateSection(idPerfilXSeccion, idPerfil, data) {
+      await this.connect();
+
+      // Ensure the pxs exists and belongs to the provided profile (if provided)
+      const pxsRows = await this.safeQuery(
+        `SELECT id, idperfil, idseccion, visible, orden FROM perfil_x_seccion WHERE id = $1`,
+        [idPerfilXSeccion]
+      );
+      if (!pxsRows.length) return null;
+      const pxs = pxsRows[0];
+      if (idPerfil && Number(idPerfil) !== Number(pxs.idperfil)) {
+        return null;
+      }
+
+      let updatedConfig = null;
+      const setParts = [];
+      const setVals = [];
+      let idx = 1;
+      if (Object.prototype.hasOwnProperty.call(data, 'visible')) {
+        setParts.push(`visible = $${idx++}`);
+        setVals.push(data.visible);
+      }
+      if (Object.prototype.hasOwnProperty.call(data, 'orden')) {
+        setParts.push(`orden = $${idx++}`);
+        setVals.push(data.orden);
+      }
+      if (setParts.length) {
+        const updateSql = `
+          UPDATE perfil_x_seccion
+          SET ${setParts.join(', ')}
+          WHERE id = $${idx}
+          RETURNING id, idperfil, idseccion, visible, orden
+        `;
+        const rows = await this.safeQuery(updateSql, [...setVals, idPerfilXSeccion]);
+        updatedConfig = rows[0] || null;
+      }
+
+      // Resolve data table for the pxs
+      const secRows = await this.safeQuery(
+        `SELECT nombre FROM secciones_disponibles WHERE id = $1`,
+        [pxs.idseccion]
+      );
+      const secName = secRows.length ? secRows[0].nombre : null;
+      const tableName = this.resolveDataTableName(secName);
+
+      let updatedData = [];
+      if (tableName && /^[a-z0-9_]+$/.test(tableName) && await this.tableExists(tableName)) {
+        const sectionPayload = data[tableName] && typeof data[tableName] === 'object' ? data[tableName] : null;
+        if (sectionPayload) {
+          const cleanEntries = Object.entries(sectionPayload)
+            .filter(([k]) => k !== 'id' && k !== 'id_perfil_x_seccion');
+          if (cleanEntries.length) {
+            const setCols = cleanEntries.map(([k], i) => `${k} = $${i + 2}`).join(', ');
+            const values = [idPerfilXSeccion, ...cleanEntries.map(([, v]) => v)];
+            const updateDataSql = `
+              UPDATE ${tableName}
+              SET ${setCols}
+              WHERE id_perfil_x_seccion = $1
+              RETURNING *
+            `;
+            updatedData = await this.safeQuery(updateDataSql, values);
+          }
+        }
+      }
+
+      if (updatedData && updatedData.length) return updatedData;
+      if (updatedConfig) return [{ id_perfil_x_seccion: pxs.id, ...updatedConfig }];
+      return [{ id_perfil_x_seccion: pxs.id }];
+    }
+
+    async deleteSection(idPerfilXSeccion, idPerfil) {
+      await this.connect();
+
+      // Ensure the pxs exists and belongs to the provided profile (if provided)
+      const pxsRows = await this.safeQuery(
+        `SELECT id, idperfil, idseccion FROM perfil_x_seccion WHERE id = $1`,
+        [idPerfilXSeccion]
+      );
+      if (!pxsRows.length) return null;
+      const pxs = pxsRows[0];
+      if (idPerfil && Number(idPerfil) !== Number(pxs.idperfil)) {
+        return null;
+      }
+
+      // Resolve data table and delete data rows first
+      const secRows = await this.safeQuery(
+        `SELECT nombre FROM secciones_disponibles WHERE id = $1`,
+        [pxs.idseccion]
+      );
+      const secName = secRows.length ? secRows[0].nombre : null;
+      const tableName = this.resolveDataTableName(secName);
+
+      let deletedDataCount = 0;
+      if (tableName && /^[a-z0-9_]+$/.test(tableName) && await this.tableExists(tableName)) {
+        const deletedDataRows = await this.safeQuery(
+          `DELETE FROM ${tableName} WHERE id_perfil_x_seccion = $1 RETURNING id`,
+          [idPerfilXSeccion]
+        );
+        deletedDataCount = deletedDataRows.length;
+      }
+
+      const deletedPxsRows = await this.safeQuery(
+        `DELETE FROM perfil_x_seccion WHERE id = $1 RETURNING id`,
+        [idPerfilXSeccion]
+      );
+      if (!deletedPxsRows.length) return null;
+
+      return {
+        id_perfil_x_seccion: idPerfilXSeccion,
+        deleted_data_count: deletedDataCount,
+        deleted: true
+      };
+    }
+
 }

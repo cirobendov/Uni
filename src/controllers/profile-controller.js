@@ -54,4 +54,54 @@ router.post('/section', authenticateToken, async (req, res) => {
   }
 });
 
+router.put('/section/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params; // id = id_perfil_x_seccion
+    if (!id || Number.isNaN(Number(id))) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: 'Parámetro id inválido' });
+    }
+
+    const perfil = await service.getProfileId(userId);
+    if (!perfil || !perfil.id) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: 'Perfil no encontrado para el usuario' });
+    }
+
+    const updated = await service.updateSection(Number(id), req.body, perfil.id);
+    if (!updated) {
+      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Sección no encontrada o no pertenece al perfil' });
+    }
+
+    return res.status(StatusCodes.OK).json({ success: true, data: updated });
+  } catch (error) {
+    const status = error.status || StatusCodes.INTERNAL_SERVER_ERROR;
+    return res.status(status).json({ success: false, message: error.message });
+  }
+});
+
+router.delete('/section/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params; // id = id_perfil_x_seccion
+    if (!id || Number.isNaN(Number(id))) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: 'Parámetro id inválido' });
+    }
+
+    const perfil = await service.getProfileId(userId);
+    if (!perfil || !perfil.id) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: 'Perfil no encontrado para el usuario' });
+    }
+
+    const deleted = await service.deleteSection(Number(id), perfil.id);
+    if (!deleted) {
+      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Sección no encontrada o no pertenece al perfil' });
+    }
+
+    return res.status(StatusCodes.OK).json({ success: true, data: deleted });
+  } catch (error) {
+    const status = error.status || StatusCodes.INTERNAL_SERVER_ERROR;
+    return res.status(status).json({ success: false, message: error.message });
+  }
+});
+
 export default router;
