@@ -15,6 +15,15 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/secciones-disponibles', authenticateToken, async (req, res) => {
+  try {
+    const sections = await service.getSeccionesDisponibles();
+    return res.status(StatusCodes.OK).json({ success: true, data: sections });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message });
+  }
+});
+
 router.get('/expanded', authenticateToken, async (req, res) => {
   try {
     const profiles = await service.getAllExpanded();

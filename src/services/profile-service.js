@@ -55,6 +55,11 @@ export default class ProfileService {
         return profile;
     }
 
+    async getSeccionesDisponibles() {
+        const sections = await this.profileRepo.getSeccionesDisponibles();
+        return sections;
+    }
+
     async addSection(data, idPerfil) {
         const profile = await this.profileRepo.addSection(data, idPerfil);
         return profile;

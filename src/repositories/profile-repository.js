@@ -109,6 +109,15 @@ export default class ProfileRepository{
       return sectionTables[key] || null;
     }
 
+    async getSeccionesDisponibles() {
+      await this.connect();
+      const sql = `
+        SELECT * FROM secciones_disponibles
+      `;
+      return await this.safeQuery(sql);
+    }
+
+
     async tableExists(tableName) {
       if (!tableName) return false;
       const sql = `
