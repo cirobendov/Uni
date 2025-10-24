@@ -49,6 +49,14 @@ export default class UserRepository {
     return res.rows[0];
   }
 
+  async createPerfil(idUsuario) {
+    await this.connect();
+    const sql = 'INSERT INTO perfiles (idusuario) VALUES ($1) RETURNING *';
+    const values = [idUsuario];
+    const res = await this.client.query(sql, values);
+    return res.rows[0];
+  }
+
   async updatePasswordById(id, hashedPassword) {
     await this.connect();
     const sql = 'UPDATE usuarios SET contraseña = $1 WHERE id = $2';

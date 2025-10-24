@@ -36,9 +36,10 @@ export default class ProfileRepository{
     async getAll() {
       await this.connect();
       const sql = `
-        SELECT *
-        FROM perfiles
-        ORDER BY id_perfil
+        SELECT p.*, u.nombreusuario, u.mail, u.activo, u.emailverificado
+        FROM perfiles p
+        JOIN usuarios u ON p.idusuario = u.id
+        ORDER BY p.id
       `;
       return await this.safeQuery(sql);
     }
@@ -46,11 +47,24 @@ export default class ProfileRepository{
     async getById(idPerfil) {
       await this.connect();
       const sql = `
-        SELECT *
-        FROM perfiles
-        WHERE id_perfil = $1
+        SELECT p.*, u.nombreusuario, u.mail, u.activo, u.emailverificado
+        FROM perfiles p
+        JOIN usuarios u ON p.idusuario = u.id
+        WHERE p.id = $1
       `;
       const res = await this.safeQuery(sql, [idPerfil]);
+      return res[0] || null;
+    }
+
+    async getByUserId(idUsuario) {
+      await this.connect();
+      const sql = `
+        SELECT p.*, u.nombreusuario, u.mail, u.activo, u.emailverificado
+        FROM perfiles p
+        JOIN usuarios u ON p.idusuario = u.id
+        WHERE p.idusuario = $1
+      `;
+      const res = await this.safeQuery(sql, [idUsuario]);
       return res[0] || null;
     }
 
@@ -59,52 +73,40 @@ export default class ProfileRepository{
       await this.connect();
       const sql = `
         SELECT 
-          s.id_seccion,
+          pxs.id as id_perfil_x_seccion,
+          s.id as id_seccion,
           s.nombre,
           s.tipo_usuario,
-          s.componente,
+          s.descripcion,
           pxs.orden,
           pxs.visible
-        FROM perfilesxsecciones pxs
-        JOIN secciones s ON s.id_seccion = pxs.id_seccion
-        WHERE pxs.id_perfil = $1
-        ORDER BY pxs.orden NULLS LAST, s.id_seccion
+        FROM perfil_x_seccion pxs
+        JOIN secciones_disponibles s ON s.id = pxs.idseccion
+        WHERE pxs.idperfil = $1
+        ORDER BY pxs.orden NULLS LAST, s.id
       `;
       return await this.safeQuery(sql, [idPerfil]);
     }
 
-    // Whitelist resolver for section data table from componente
-    resolveDataTableName(component) {
-      if (!component) return null;
-      const key = String(component).toLowerCase();
+    // Whitelist resolver for section data table from section name
+    resolveDataTableName(sectionName) {
+      if (!sectionName) return null;
+      const key = String(sectionName).toLowerCase();
 
-      // Predefined common mappings
-      const map = {
-        // snake_case
-        about: 'about_section_data',
-        education: 'education_section_data',
-        project: 'projects_section_data',
-        projects: 'projects_section_data',
-        experiencia: 'experience_section_data',
-        experiencia_laboral: 'experience_section_data',
-        habilidades: 'skills_section_data',
-        skills: 'skills_section_data',
-        // PascalCase examples (as per your description)
-        about_pascal: 'AboutSectionData',
-        education_pascal: 'EducationSectionData',
-        projects_pascal: 'ProjectsSectionData',
+      // Map visible section names to their corresponding table names
+      const sectionTables = {
+        about: 'seccion_about',
+        education: 'seccion_education',
+        educacion: 'seccion_education',
+        experience: 'seccion_experience',
+        experiencia: 'seccion_experience',
+        projects: 'seccion_projects',
+        proyectos: 'seccion_projects',
+        activity: 'seccion_activity',
+        actividad: 'seccion_activity'
       };
 
-      if (map[key]) return map[key];
-      // try explicit pascal case keys
-      if (key === 'about') return map.about_pascal;
-      if (key === 'education') return map.education_pascal;
-      if (key === 'projects' || key === 'project') return map.projects_pascal;
-
-      // Generic fallback: <component>_section_data (only safe chars)
-      const safe = key.replace(/[^a-z0-9_]/g, '');
-      if (!safe) return null;
-      return `${safe}_section_data`;
+      return sectionTables[key] || null;
     }
 
     async tableExists(tableName) {
@@ -118,23 +120,30 @@ export default class ProfileRepository{
       return res.length > 0;
     }
 
-    async getSectionDataForProfile(tableName, idPerfil) {
+    async getSectionDataBySectionId(tableName, idPerfilXSeccion) {
+      if (!tableName) return [];
+
       // We cannot parameterize identifiers; ensure whitelist and existence first
       const exists = await this.tableExists(tableName);
       if (!exists) return [];
 
       // Validate identifier characters strictly
-      if (!/^[A-Za-z0-9_]+$/.test(tableName)) {
+      if (!/^[a-z0-9_]+$/.test(tableName)) {
         return [];
       }
 
-      // Quote if contains uppercase letters
-      const needsQuotes = /[A-Z]/.test(tableName);
-      const ident = needsQuotes ? `"${tableName}"` : tableName;
-
-      // Safe interpolation since tableName exists and is sanitized
-      const sql = `SELECT * FROM ${ident} WHERE id_perfil = $1 ORDER BY 1`;
-      return await this.safeQuery(sql, [idPerfil]);
+      try {
+        const sql = `
+          SELECT *
+          FROM ${tableName}
+          WHERE id_perfil_x_seccion = $1
+          ORDER BY id
+        `;
+        return await this.safeQuery(sql, [idPerfilXSeccion]);
+      } catch (error) {
+        console.error('Error fetching section data:', error);
+        return [];
+      }
     }
 
     // Expanded profiles with sections and their data
@@ -144,19 +153,20 @@ export default class ProfileRepository{
 
       const enriched = [];
       for (const perfil of perfiles) {
-        const idPerfil = perfil.id_perfil || perfil.id || perfil.idperfil; // tolerate naming
+        const idPerfil = perfil.id;
         const sections = await this.getSectionsForProfile(idPerfil);
 
         const detailedSections = [];
         for (const s of sections) {
-          const table = this.resolveDataTableName(s.componente);
-          const data = await this.getSectionDataForProfile(table, idPerfil);
+          const table = this.resolveDataTableName(s.nombre);
+          const data = table ? await this.getSectionDataBySectionId(table, s.id_perfil_x_seccion) : [];
+          
           detailedSections.push({
             seccion: {
-              id_seccion: s.id_seccion,
+              id: s.id_seccion,
               nombre: s.nombre,
               tipo_usuario: s.tipo_usuario,
-              componente: s.componente,
+              descripcion: s.descripcion,
             },
             config: {
               orden: s.orden,
@@ -166,8 +176,11 @@ export default class ProfileRepository{
           });
         }
 
+        // Remove sensitive data from the response
+        const { idusuario, ...perfilData } = perfil;
+        
         enriched.push({
-          ...perfil,
+          ...perfilData,
           secciones: detailedSections,
         });
       }
@@ -182,15 +195,17 @@ export default class ProfileRepository{
 
       const sections = await this.getSectionsForProfile(idPerfil);
       const detailedSections = [];
+      
       for (const s of sections) {
-        const table = this.resolveDataTableName(s.componente);
-        const data = await this.getSectionDataForProfile(table, idPerfil);
+        const table = this.resolveDataTableName(s.nombre);
+        const data = table ? await this.getSectionDataBySectionId(table, s.id_perfil_x_seccion) : [];
+        
         detailedSections.push({
           seccion: {
-            id_seccion: s.id_seccion,
+            id: s.id_seccion,
             nombre: s.nombre,
             tipo_usuario: s.tipo_usuario,
-            componente: s.componente,
+            descripcion: s.descripcion,
           },
           config: {
             orden: s.orden,
@@ -200,6 +215,92 @@ export default class ProfileRepository{
         });
       }
 
-      return { ...perfil, secciones: detailedSections };
+      // Remove sensitive data from the response
+      const { idusuario, ...perfilData } = perfil;
+      
+      return { 
+        ...perfilData, 
+        secciones: detailedSections 
+      };
     }
+
+    async createProfile(data, idusuario) {
+      await this.connect();
+      const sql = `
+        INSERT INTO perfiles (${Object.keys(data).join(', ')}), idusuario)
+        VALUES (${Object.values(data).join(', ')}), $1)
+        RETURNING *
+      `;
+      const res = await this.safeQuery(sql, [...Object.values(data), idusuario]);
+      return res[0] || null;
+    }
+
+    async getProfileId(idusuario) {
+      await this.connect();
+      const sql = `
+        SELECT id
+        FROM perfiles
+        WHERE idusuario = $1
+      `;
+      const res = await this.safeQuery(sql, [idusuario]);
+      return res[0] || null;
+    }
+
+
+
+    async addSection(data, idPerfil) {
+      await this.connect();
+
+      const visible = data.visible ?? true;
+      const orden = data.orden ?? null;
+      const idseccion = data.idseccion;
+      if (!idPerfil || !idseccion) {
+        return [];
+      }
+
+      const insertPxsSql = `
+        INSERT INTO perfil_x_seccion (idperfil, idseccion, visible, orden)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+      `;
+      const pxsRows = await this.safeQuery(insertPxsSql, [idPerfil, idseccion, visible, orden]);
+      if (!pxsRows.length) return [];
+      const idPerfilXSeccion = pxsRows[0].id;
+
+      // Resolve target data table directly (avoid method binding issues)
+      const secRows = await this.safeQuery(
+        `SELECT nombre FROM secciones_disponibles WHERE id = $1`,
+        [idseccion]
+      );
+      const secName = secRows.length ? secRows[0].nombre : null;
+      const tableName = this.resolveDataTableName(secName);
+      if (!tableName) {
+        return [{ id_perfil_x_seccion: idPerfilXSeccion }];
+      }
+
+      const exists = await this.tableExists(tableName);
+      if (!exists) {
+        return [{ id_perfil_x_seccion: idPerfilXSeccion }];
+      }
+
+      const sectionPayload = data[tableName] && typeof data[tableName] === 'object' ? data[tableName] : null;
+      if (!sectionPayload) {
+        return [{ id_perfil_x_seccion: idPerfilXSeccion }];
+      }
+
+      const cleanEntries = Object.entries(sectionPayload)
+        .filter(([k]) => k !== 'id' && k !== 'id_perfil_x_seccion');
+      const cols = ['id_perfil_x_seccion', ...cleanEntries.map(([k]) => k)];
+      const vals = [idPerfilXSeccion, ...cleanEntries.map(([, v]) => v)];
+      const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+
+      const insertDataSql = `
+        INSERT INTO ${tableName} (${cols.join(', ')})
+        VALUES (${placeholders})
+        RETURNING *
+      `;
+      const dataRows = await this.safeQuery(insertDataSql, vals);
+      return dataRows;
+    }
+
 }

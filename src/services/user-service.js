@@ -12,6 +12,10 @@ export default class UserService {
     this.commonRepo = new CommonRepository();
   }
 
+  async crearPerfil (idUsuario) {
+    return this.repo.createPerfil(idUsuario);
+  }
+
   async login({ mail, contraseña }) {
     const usuario = await this.commonRepo.getOneByField('usuarios', 'mail', mail);
     if (!usuario) {

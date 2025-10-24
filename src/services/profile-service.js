@@ -39,4 +39,25 @@ export default class ProfileService {
         const profile = await this.profileRepo.getByIdExpanded(id);
         return profile;
     }
+
+    async getByUserIdExpanded(userId) {
+        if (!userId || Number.isNaN(Number(userId))) {
+            const err = new Error('Parámetro userId inválido');
+            err.status = 400;
+            throw err;
+        }
+        const profile = await this.profileRepo.getByUserIdExpanded(userId);
+        return profile;
+    }
+
+    async getProfileId(idusuario) {
+        const profile = await this.profileRepo.getProfileId(idusuario);
+        return profile;
+    }
+
+    async addSection(data, idPerfil) {
+        const profile = await this.profileRepo.addSection(data, idPerfil);
+        return profile;
+    }
+
 }

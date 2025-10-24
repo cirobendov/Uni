@@ -38,4 +38,20 @@ router.get('/:id/expanded', authenticateToken, async (req, res) => {
   }
 });
 
+
+router.post('/section', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const perfil = await service.getProfileId(userId);
+    if (!perfil || !perfil.id) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: 'Perfil no encontrado para el usuario' });
+    }
+
+    const inserted = await service.addSection(req.body, perfil.id);
+    return res.status(StatusCodes.CREATED).json({ success: true, data: inserted });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message });
+  }
+});
+
 export default router;
