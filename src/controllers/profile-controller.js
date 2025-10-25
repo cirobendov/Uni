@@ -33,12 +33,16 @@ router.get('/expanded', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/:id/expanded', authenticateToken, async (req, res) => {
+router.get('/:userId/expanded', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const profile = await service.getByIdExpanded(id);
+    const { userId } = req.params;
+    if (!userId || Number.isNaN(Number(userId))) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: 'Parámetro userId inválido' });
+    }
+    
+    const profile = await service.getByUserIdExpanded(userId);
     if (!profile) {
-      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Perfil no encontrado' });
+      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Perfil no encontrado para el usuario' });
     }
     return res.status(StatusCodes.OK).json({ success: true, data: profile });
   } catch (error) {

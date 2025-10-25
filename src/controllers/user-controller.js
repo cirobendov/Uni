@@ -17,7 +17,7 @@ router.post('/register', validateRegistro, validateEstudiante, async (req, res) 
       mail: usuarioData.mail,
       idusuario: usuarioCreado.id // lo obtenés recién ahora
     });
-    const perfilCreado = await service.createPerfil(usuarioCreado.id);
+    const perfilCreado = await service.crearPerfil(usuarioCreado.id);
 
     res.status(StatusCodes.CREATED).json({
       message: 'Registro completo exitoso',

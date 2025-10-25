@@ -40,6 +40,16 @@ export default class ProfileService {
         return profile;
     }
 
+    async getByUserId(userId) {
+        if (!userId || Number.isNaN(Number(userId))) {
+            const err = new Error('Parámetro userId inválido');
+            err.status = 400;
+            throw err;
+        }
+        const profile = await this.profileRepo.getByUserId(userId);
+        return profile;
+    }
+
     async getByUserIdExpanded(userId) {
         if (!userId || Number.isNaN(Number(userId))) {
             const err = new Error('Parámetro userId inválido');

@@ -233,6 +233,42 @@ export default class ProfileRepository{
       };
     }
 
+    async getByUserIdExpanded(idUsuario) {
+      await this.connect();
+      const perfil = await this.getByUserId(idUsuario);
+      if (!perfil) return null;
+
+      const sections = await this.getSectionsForProfile(perfil.id);
+      const detailedSections = [];
+      
+      for (const s of sections) {
+        const table = this.resolveDataTableName(s.nombre);
+        const data = table ? await this.getSectionDataBySectionId(table, s.id_perfil_x_seccion) : [];
+        
+        detailedSections.push({
+          seccion: {
+            id: s.id_seccion,
+            nombre: s.nombre,
+            tipo_usuario: s.tipo_usuario,
+            descripcion: s.descripcion,
+          },
+          config: {
+            orden: s.orden,
+            visible: s.visible,
+          },
+          datos: Array.isArray(data) ? data : [],
+        });
+      }
+
+      // Remove sensitive data from the response
+      const { idusuario, ...perfilData } = perfil;
+      
+      return { 
+        ...perfilData, 
+        secciones: detailedSections 
+      };
+    }
+
     async createProfile(data, idusuario) {
       await this.connect();
       const sql = `
