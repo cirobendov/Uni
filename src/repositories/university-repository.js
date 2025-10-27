@@ -95,18 +95,19 @@ export default class UniversityRepository {
       return result[0] || null;
     }
 
-    async getCarrerasByUniversidad(idUniversidad) {
+    async getCarrerasByUsuario(idUsuario) {
       await this.connect();
       
       const sql = `
         SELECT c.*, cxu.*
         FROM carrerasxuniversidades cxu
         JOIN carreras c ON c.id = cxu.idcarrera
-        WHERE cxu.iduniversidad = $1
+        JOIN universidades u ON u.id = cxu.iduniversidad
+        WHERE u.idusuario = $1
         ORDER BY c.id
       `;
       
-      return await this.safeQuery(sql, [idUniversidad]);
+      return await this.safeQuery(sql, [idUsuario]);
     }
 
     async getCarrerasWithCategorias(idUniversidad) {

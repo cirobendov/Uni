@@ -104,4 +104,170 @@ export default class CareerRepository {
       return await this.safeQuery(sql, [idCategoria]);
     }
 
+    async createCarreraForUsuario(carreraData, idUsuario) {
+      await this.connect();
+      
+      // Start a transaction
+      await this.client.query('BEGIN');
+      
+      try {
+        // 1. Get the university ID for this user
+        const universidadResult = await this.client.query(
+          'SELECT id FROM universidades WHERE idusuario = $1',
+          [idUsuario]
+        );
+        
+        if (universidadResult.rows.length === 0) {
+          throw new Error('No se encontró la universidad para este usuario');
+        }
+        
+        const idUniversidad = universidadResult.rows[0].id;
+        
+        // 2. Insert the new career
+        const insertCarreraSql = `
+          INSERT INTO carreras (nombre, descripcion, foto)
+          VALUES ($1, $2, $3)
+          RETURNING id`;
+          
+        const carreraResult = await this.client.query(insertCarreraSql, [
+          carreraData.nombre,
+          carreraData.descripcion,
+          carreraData.foto
+        ]);
+        
+        const idCarrera = carreraResult.rows[0].id;
+        
+        // 3. Link the career to the university with both iduniversidad and idusuario
+        const insertLinkSql = `
+          INSERT INTO carrerasxuniversidades (
+            iduniversidad,
+            idusuario,
+            idcarrera,
+            duracion,
+            costo,
+            modalidad,
+            titulo_otorgado,
+            sede,
+            perfil_graduado,
+            plan_estudios
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          RETURNING *`;
+          
+        const linkResult = await this.client.query(insertLinkSql, [
+          idUniversidad,
+          idUsuario,
+          idCarrera,
+          carreraData.duracion,
+          carreraData.costo,
+          carreraData.modalidad,
+          carreraData.titulo_otorgado,
+          carreraData.sede,
+          carreraData.perfil_graduado,
+          carreraData.plan_estudios
+        ]);
+        
+        // 4. Get the complete career data to return
+        const carreraCompleta = await this.client.query(`
+          SELECT c.*, cxu.*, u.nombre as nombre_universidad
+          FROM carreras c
+          JOIN carrerasxuniversidades cxu ON c.id = cxu.idcarrera
+          JOIN universidades u ON u.id = cxu.iduniversidad
+          WHERE c.id = $1 AND cxu.idusuario = $2
+        `, [idCarrera, idUsuario]);
+        
+        await this.client.query('COMMIT');
+        return carreraCompleta.rows[0] || linkResult.rows[0];
+        
+      } catch (error) {
+        await this.client.query('ROLLBACK');
+        throw error;
+      }
+    }
+
+    async asociarCarreraAUniversidad(idCarrera, idUsuario, carreraData) {
+      await this.connect();
+      
+      // Start a transaction
+      await this.client.query('BEGIN');
+      
+      try {
+        // 1. Get the university ID for this user
+        const universidadResult = await this.client.query(
+          'SELECT id FROM universidades WHERE idusuario = $1',
+          [idUsuario]
+        );
+        
+        if (universidadResult.rows.length === 0) {
+          throw new Error('No se encontró la universidad para este usuario');
+        }
+        
+        const idUniversidad = universidadResult.rows[0].id;
+        
+        // 2. Check if the career exists
+        const carreraResult = await this.client.query(
+          'SELECT id FROM carreras WHERE id = $1',
+          [idCarrera]
+        );
+        
+        if (carreraResult.rows.length === 0) {
+          throw new Error('La carrera especificada no existe');
+        }
+        
+        // 3. Check if the career is already associated with this user's university
+        const existingLink = await this.client.query(
+          `SELECT * FROM carrerasxuniversidades 
+           WHERE idcarrera = $1 AND idusuario = $2`,
+          [idCarrera, idUsuario]
+        );
+        
+        if (existingLink.rows.length > 0) {
+          throw new Error('Esta carrera ya está asociada a la universidad');
+        }
+        
+        // 4. Create the association including idusuario
+        const insertLinkSql = `
+          INSERT INTO carrerasxuniversidades (
+            iduniversidad,
+            idusuario,
+            idcarrera,
+            duracion,
+            costo,
+            modalidad,
+            titulo_otorgado,
+            sede,
+            perfil_graduado,
+            plan_estudios
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          RETURNING *`;
+          
+        const linkResult = await this.client.query(insertLinkSql, [
+          idUniversidad,
+          idUsuario,
+          idCarrera,
+          carreraData.duracion,
+          carreraData.costo,
+          carreraData.modalidad,
+          carreraData.titulo_otorgado,
+          carreraData.sede,
+          carreraData.perfil_graduado,
+          carreraData.plan_estudios
+        ]);
+        
+        // 5. Get the complete career data to return
+        const carreraCompleta = await this.client.query(`
+          SELECT c.*, cxu.*, u.nombre as nombre_universidad
+          FROM carreras c
+          JOIN carrerasxuniversidades cxu ON c.id = cxu.idcarrera
+          JOIN universidades u ON u.id = cxu.iduniversidad
+          WHERE c.id = $1 AND cxu.idusuario = $2
+        `, [idCarrera, idUsuario]);
+        
+        await this.client.query('COMMIT');
+        return carreraCompleta.rows[0] || linkResult.rows[0];
+        
+      } catch (error) {
+        await this.client.query('ROLLBACK');
+        throw error;
+      }
+    }
 }

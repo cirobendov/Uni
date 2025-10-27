@@ -30,17 +30,13 @@ export default class UniversityService {
     return universidad;
   }
 
-  async getCarrerasByUniversidad(idUniversidad) {
-    if (!idUniversidad || Number.isNaN(Number(idUniversidad))) {
-      const err = new Error('Parámetro idUniversidad inválido');
+  async getCarrerasByUniversidad(idUsuario) {
+    if (!idUsuario || Number.isNaN(Number(idUsuario))) {
+      const err = new Error('Parámetro idUsuario inválido');
       err.status = 400;
       throw err;
     }
-    const universidad = await this.commonRepo.getById(this.TABLE, idUniversidad);
-    if (!universidad) {
-      return null;
-    }
-    const carreras = await this.universityRepo.getCarrerasByUniversidad(idUniversidad);
+    const carreras = await this.universityRepo.getCarrerasByUsuario(idUsuario);
     return carreras;
   }
 
