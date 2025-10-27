@@ -15,6 +15,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+
 router.get('/secciones-disponibles', authenticateToken, async (req, res) => {
   try {
     const sections = await service.getSeccionesDisponibles();

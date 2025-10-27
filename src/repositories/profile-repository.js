@@ -97,13 +97,9 @@ export default class ProfileRepository{
       const sectionTables = {
         about: 'seccion_about',
         education: 'seccion_education',
-        educacion: 'seccion_education',
         experience: 'seccion_experience',
-        experiencia: 'seccion_experience',
         projects: 'seccion_projects',
-        proyectos: 'seccion_projects',
-        activity: 'seccion_activity',
-        actividad: 'seccion_activity'
+        events: 'seccion_events'
       };
 
       return sectionTables[key] || null;
